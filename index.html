@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RB Motors — Expense &amp; Sales Log</title>
+<style>
+  :root{
+    --bg: #e4f0fa;
+    --panel: #ffffff;
+    --panel-2: #eef6fc;
+    --line: #c3ddf0;
+    --text: #12293d;
+    --text-dim: #5b7d95;
+    --amber: #1f7fc4;
+    --green: #1f9d6b;
+    --red: #d64545;
+    --mono: 'Courier New', Courier, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      repeating-linear-gradient(135deg, rgba(18,41,61,0.025) 0 2px, transparent 2px 40px),
+      var(--bg);
+    color:var(--text);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 64px;}
+
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    border-bottom:3px solid var(--amber);
+    padding-bottom:16px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .brand{display:flex; align-items:center; gap:14px;}
+  .brand-mark{
+    width:46px;height:46px;border-radius:8px;
+    background:var(--amber);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono); font-weight:700; color:#14171a; font-size:20px;
+    transform:rotate(-4deg);
+    flex-shrink:0;
+  }
+  h1{
+    font-size:26px;
+    letter-spacing:1.5px;
+    margin:0;
+    text-transform:uppercase;
+    font-weight:800;
+  }
+  .tagline{color:var(--text-dim); font-size:12.5px; letter-spacing:0.5px; margin-top:2px;}
+  .header-meta{font-family:var(--mono); font-size:11.5px; color:var(--text-dim); text-align:right;}
+
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px;
+    margin-bottom:28px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:3px solid var(--amber);
+    border-radius:6px;
+    padding:14px 16px;
+    position:relative;
+  }
+  .card.neg{border-left-color:var(--red);}
+  .card.pos{border-left-color:var(--green);}
+  .card-label{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .card-value{
+    font-family:var(--mono);
+    font-size:21px;
+    font-weight:700;
+  }
+  .card-value.green{color:var(--green);}
+  .card-value.red{color:var(--red);}
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:20px;
+    margin-bottom:28px;
+  }
+  .panel-title{
+    font-size:13px;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    color:var(--amber);
+    font-weight:700;
+    margin:0 0 16px 0;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .panel-title::before{
+    content:"";
+    width:8px;height:8px;background:var(--amber);
+    display:inline-block; border-radius:2px;
+  }
+  form{
+    display:grid;
+    grid-template-columns:repeat(4, 1fr);
+    gap:14px;
+  }
+  .field{display:flex; flex-direction:column; gap:6px;}
+  .field.span-2{grid-column:span 2;}
+  .field.span-3{grid-column:span 3;}
+  .field.span-4{grid-column:span 4;}
+  input:disabled{opacity:0.4; cursor:not-allowed;}
+  label{font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.6px;}
+  input, select{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    border-radius:5px;
+    color:var(--text);
+    padding:9px 10px;
+    font-size:14px;
+    font-family:inherit;
+  }
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--amber);
+  }
+  input::placeholder{color:#5f6569;}
+  .form-actions{
+    grid-column:span 4;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    margin-top:4px;
+  }
+  button{
+    font-family:inherit;
+    font-size:13px;
+    font-weight:700;
+    letter-spacing:0.4px;
+    text-transform:uppercase;
+    border-radius:5px;
+    padding:10px 20px;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    cursor:pointer;
+    transition:opacity .15s;
+  }
+  button:hover{opacity:0.85;}
+  button.primary{
+    background:var(--amber);
+    border-color:var(--amber);
+    color:#14171a;
+  }
+  button.ghost{
+    background:transparent;
+  }
+
+  .table-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:8px;
+    overflow:hidden;
+  }
+  .table-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line);
+  }
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  thead th{
+    text-align:left;
+    padding:10px 14px;
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:0.6px;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--line);
+    white-space:nowrap;
+  }
+  tbody td{
+    padding:11px 14px;
+    border-bottom:1px solid var(--line);
+    vertical-align:top;
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  tbody tr:hover{background:var(--panel-2);}
+  .amt{font-family:var(--mono); text-align:right; white-space:nowrap;}
+  .amt.buy, .amt.expense{color:var(--red);}
+  .amt.sell{color:var(--green);}
+  .pill{
+    display:inline-block;
+    font-size:10.5px;
+    padding:2px 8px;
+    border-radius:99px;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    border:1px solid var(--line);
+  }
+  .pill.buy{color:var(--red); border-color:var(--red);}
+  .pill.sell{color:var(--green); border-color:var(--green);}
+  .pill.expense{color:var(--amber); border-color:var(--amber);}
+  .del-btn{
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:5px;
+    color:var(--text-dim);
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:0.4px;
+    cursor:pointer;
+    padding:5px 10px;
+    white-space:nowrap;
+  }
+  .edit-btn{background:transparent; border:1px solid var(--line); border-radius:5px; color:var(--text-dim); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.4px; cursor:pointer; padding:5px 10px;}
+  .edit-btn:hover{color:#fff; background:var(--amber); border-color:var(--amber);}
+  .del-btn:hover{color:#ffffff; background:var(--red); border-color:var(--red);}
+  .empty-row td{
+    text-align:center;
+    color:var(--text-dim);
+    padding:36px 14px;
+    font-size:13px;
+  }
+  tfoot .totals-row td{
+    padding:12px 14px;
+    border-top:2px solid var(--line);
+    border-bottom:none;
+    background:var(--panel-2);
+  }
+
+  .grid-wrap{overflow-x:auto; border:1px solid var(--line); border-radius:6px;}
+  .entry-grid{min-width:900px;}
+  .entry-grid thead th{background:var(--panel-2);}
+  .entry-grid tbody td{padding:6px 6px; vertical-align:middle;}
+  .entry-grid tbody tr:hover{background:transparent;}
+  .entry-grid input, .entry-grid select{width:100%; min-width:84px; padding:7px 8px; font-size:13px;}
+  .entry-grid td:nth-child(3) input{min-width:150px;}
+  .grid-actions{display:flex; justify-content:space-between; gap:10px; margin-top:14px; flex-wrap:wrap;}
+  .grid-actions-left, .grid-actions-right{display:flex; gap:10px; flex-wrap:wrap;}
+  .tabs{display:flex; gap:8px; margin-bottom:20px;}
+  .tab{background:var(--panel); border:1px solid var(--line); color:var(--text-dim);}
+  .tab.active{background:var(--amber); border-color:var(--amber); color:#fff;}
+  .toolbar{display:flex; gap:8px;}
+  button.danger{background:transparent; border-color:var(--red); color:var(--red);}
+  button.danger:hover{background:var(--red); color:#fff; opacity:1;}
+  [hidden]{display:none !important;}
+  @media (max-width:720px){
+    .summary{grid-template-columns:repeat(2,1fr);}
+    form{grid-template-columns:repeat(2,1fr);}
+    .field.span-2, .field.span-3, .field.span-4{grid-column:span 2;}
+    .form-actions{grid-column:span 2;}
+    table{font-size:12px;}
+    #pageTx .table-wrap thead th:nth-child(6), #pageTx .table-wrap tbody td:nth-child(6){display:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <div class="brand-mark">RB</div>
+      <div>
+        <h1>RB Motors</h1>
+        <div class="tagline">Expense &amp; Spare Parts Sales Log</div>
+      </div>
+    </div>
+    <div class="header-meta" id="entryCount">0 entries logged</div>
+  </header>
+
+  <div class="summary" id="summaryCards"></div>
+
+  <nav class="tabs">
+    <button type="button" class="tab active" id="tabAdd">Add Entry</button>
+    <button type="button" class="tab" id="tabTx">Transactions</button>
+    <button type="button" class="tab" id="tabVeh">Vehicle Wise</button>
+  </nav>
+
+  <section id="pageAdd">
+  <div class="panel">
+    <p class="panel-title" id="addTitle">Add entry</p>
+    <div id="entryForm">
+      <div class="grid-wrap">
+        <table class="entry-grid">
+          <thead><tr id="gridHead"></tr></thead>
+          <tbody id="gridBody"></tbody>
+        </table>
+      </div>
+      <div class="grid-actions">
+        <div class="grid-actions-left">
+        </div>
+        <div class="grid-actions-right">
+          <button type="button" class="ghost" id="cancelEditBtn" hidden>Cancel Edit</button>
+          <button type="button" class="primary" id="saveEntryBtn">Save Entry</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  </section>
+
+  <section id="pageTx" hidden>
+  <div class="table-wrap">
+    <div class="table-head">
+      <p class="panel-title" style="margin:0;">Transactions</p>
+      <div class="toolbar">
+        <button type="button" class="ghost" id="txAddBtn">Add</button>
+        <button type="button" class="ghost" id="txEditBtn">Edit</button>
+        <button type="button" class="ghost" id="saveBtn">Save</button>
+        <button type="button" class="danger" id="txDeleteBtn">Delete</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr id="tableHeadRow"></tr></thead>
+      <tbody id="tableBody"></tbody>
+      <tfoot id="tableFoot"></tfoot>
+    </table>
+  </div>
+  </section>
+
+  <section id="pageVeh" hidden>
+  <div class="table-wrap">
+    <div class="table-head">
+      <p class="panel-title" style="margin:0;">Vehicle Wise</p>
+      <div class="toolbar">
+        <button type="button" class="ghost" id="vehSaveBtn">Save</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Vehicle No</th><th>Entries</th>
+        <th style="text-align:right;">Buy (₹)</th><th style="text-align:right;">Sell (₹)</th><th style="text-align:right;">Profit (₹)</th><th></th>
+      </tr></thead>
+      <tbody id="vehBody"></tbody>
+      <tfoot id="vehFoot"></tfoot>
+    </table>
+  </div>
+
+  <div class="table-wrap" id="vehDetail" hidden style="margin-top:20px;">
+    <div class="table-head">
+      <p class="panel-title" style="margin:0;" id="vehDetailTitle">Vehicle</p>
+      <div class="toolbar">
+        <button type="button" class="ghost" id="vehDetailSave">Save This Vehicle</button>
+        <button type="button" class="ghost" id="vehDetailClose">Close</button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Category</th><th>Description</th><th>Qty</th>
+        <th style="text-align:right;">Buy (₹)</th><th style="text-align:right;">Sell (₹)</th><th style="text-align:right;">Profit (₹)</th>
+      </tr></thead>
+      <tbody id="vehDetailBody"></tbody>
+    </table>
+  </div>
+  </section>
+
+</div>
+
+<script>
+  let entries = [];
+  let columns = [];   // custom columns: [{id, name}]
+  const STORAGE_KEY = 'rb-motors-entries';
+  const COLUMNS_KEY = 'rb-motors-columns';
+  const CATEGORIES = ['Spare Parts','Petrol','Other Expenses'];
+
+  const fmt = n => '₹' + Number(n || 0).toLocaleString('en-IN');
+
+  async function loadEntries(){
+    try{
+      const result = await window.storage.get(STORAGE_KEY, false);
+      entries = result && result.value ? JSON.parse(result.value) : [];
+    }catch(e){
+      entries = [];
+    }
+    try{
+      const c = await window.storage.get(COLUMNS_KEY, false);
+      columns = c && c.value ? JSON.parse(c.value) : [];
+    }catch(e){
+      columns = [];
+    }
+    renderGridHead();
+    resetGrid();
+    render();
+  }
+
+  async function saveColumns(){
+    try{
+      await window.storage.set(COLUMNS_KEY, JSON.stringify(columns), false);
+    }catch(e){
+      console.error('Could not save columns', e);
+    }
+  }
+
+  async function saveEntries(){
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(entries), false);
+    }catch(e){
+      console.error('Could not save entries', e);
+    }
+  }
+
+  function computeSummary(){
+    const sumBuy = cat => entries.filter(e => e.category === cat).reduce((s, e) => s + Number(e.buyAmount || 0), 0);
+    const sumSell = cat => entries.filter(e => e.category === cat).reduce((s, e) => s + Number(e.sellAmount || 0), 0);
+
+    const partsBuy = sumBuy('Spare Parts');
+    const partsSell = sumSell('Spare Parts');
+    const grossProfit = partsSell - partsBuy;
+    const petrol = sumBuy('Petrol');
+    const other = sumBuy('Other Expenses');
+    const net = grossProfit - petrol - other;
+    return { partsBuy, partsSell, grossProfit, petrol, other, net };
+  }
+
+  function renderSummary(){
+    const s = computeSummary();
+    const cards = [
+      { label:'Parts Gross Profit', value:s.grossProfit, cls: s.grossProfit >= 0 ? 'pos green' : 'neg red' },
+      { label:'Petrol Spend', value:s.petrol, cls:'neg red' },
+      { label:'Other Expenses', value:s.other, cls:'neg red' },
+      { label:'Net Profit', value:s.net, cls: s.net >= 0 ? 'pos green' : 'neg red' },
+    ];
+    document.getElementById('summaryCards').innerHTML = cards.map(c => {
+      const [cardCls, valCls] = c.cls.split(' ');
+      return `<div class="card ${cardCls}">
+        <div class="card-label">${c.label}</div>
+        <div class="card-value ${valCls}">${fmt(c.value)}</div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderTable(){
+    const body = document.getElementById('tableBody');
+    document.getElementById('tableHeadRow').innerHTML =
+      '<th><input type="checkbox" id="selectAll" title="Select all"></th><th>Date</th><th>Category</th><th>Description</th><th>Vehicle No</th><th>Notes</th><th>Qty</th>' +
+      columns.map(c => `<th>${escapeHtml(c.name)}</th>`).join('') +
+      '<th style="text-align:right;">Buy (₹)</th><th style="text-align:right;">Sell (₹)</th><th style="text-align:right;">Profit (₹)</th><th></th>';
+    const extra = columns.length;
+    document.getElementById('entryCount').textContent = entries.length + ' entries logged';
+
+    if(entries.length === 0){
+      body.innerHTML = `<tr class="empty-row"><td colspan="${11 + extra}">No entries yet — add your first transaction above.</td></tr>`;
+      document.getElementById('tableFoot').innerHTML = '';
+      return;
+    }
+
+    const sorted = [...entries].sort((a,b) => (b.date || '').localeCompare(a.date || ''));
+
+    body.innerHTML = sorted.map(e => {
+      const buy = Number(e.buyAmount || 0);
+      const sell = Number(e.sellAmount || 0);
+      const buyVal = buy > 0 ? fmt(buy) : '—';
+      const sellVal = sell > 0 ? fmt(sell) : '—';
+      const hasBoth = buy > 0 && sell > 0;
+      const profit = sell - buy;
+      const profitVal = hasBoth
+        ? `<span class="${profit >= 0 ? 'amt sell' : 'amt buy'}">${fmt(profit)}</span>`
+        : '—';
+      return `<tr>
+        <td><input type="checkbox" class="row-sel" data-id="${e.id}"></td>
+        <td>${e.date || '—'}</td>
+        <td>${e.category}</td>
+        <td>${escapeHtml(e.description)}</td>
+        <td>${escapeHtml(e.vehicleNo || '—')}</td>
+        <td>${escapeHtml(e.notes || '—')}</td>
+        <td>${e.quantity !== '' && e.quantity !== null && e.quantity !== undefined ? e.quantity : '—'}</td>
+        ${columns.map(c => `<td>${escapeHtml((e.custom && e.custom[c.id]) || '—')}</td>`).join('')}
+        <td class="amt buy">${buyVal}</td>
+        <td class="amt sell">${sellVal}</td>
+        <td class="amt">${profitVal}</td>
+        <td style="white-space:nowrap;"><button class="edit-btn" title="Edit entry" data-id="${e.id}">Edit</button> <button class="del-btn" title="Delete entry" data-id="${e.id}">Delete</button></td>
+      </tr>`;
+    }).join('');
+
+    body.querySelectorAll('.edit-btn').forEach(btn => {
+      btn.addEventListener('click', () => startEdit(btn.dataset.id));
+    });
+
+    body.querySelectorAll('.del-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if(!confirm('Delete this entry? This cannot be undone.')) return;
+        entries = entries.filter(e => e.id !== btn.dataset.id);
+        await saveEntries();
+        render();
+      });
+    });
+
+    const selAll = document.getElementById('selectAll');
+    if(selAll){
+      selAll.addEventListener('change', () => {
+        body.querySelectorAll('.row-sel').forEach(c => c.checked = selAll.checked);
+      });
+    }
+
+    const totalBuy = entries.reduce((s, e) => s + Number(e.buyAmount || 0), 0);
+    const totalSell = entries.reduce((s, e) => s + Number(e.sellAmount || 0), 0);
+    const totalProfit = totalSell - totalBuy;
+
+    document.getElementById('tableFoot').innerHTML = `
+      <tr class="totals-row">
+        <td colspan="${7 + extra}" style="text-align:right; font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:0.6px; color:var(--text-dim);">Totals</td>
+        <td class="amt buy" style="font-weight:700;">${fmt(totalBuy)}</td>
+        <td class="amt sell" style="font-weight:700;">${fmt(totalSell)}</td>
+        <td class="amt ${totalProfit >= 0 ? 'sell' : 'buy'}" style="font-weight:700;">${fmt(totalProfit)}</td>
+        <td></td>
+      </tr>`;
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str == null ? '' : str;
+    return div.innerHTML;
+  }
+
+  function render(){
+    renderSummary();
+    renderTable();
+    renderVehicles();
+  }
+
+  // ---------- Entry grid (Add Row / Add Column) ----------
+  const todayStr = () => new Date().toISOString().slice(0,10);
+
+  function renderGridHead(){
+    document.getElementById('gridHead').innerHTML =
+      '<th>Date</th><th>Category</th><th>Description</th><th>Vehicle No</th><th>Notes</th><th>Qty</th>' +
+      columns.map(c => `<th>${escapeHtml(c.name)}</th>`).join('') +
+      '<th>Buy (₹)</th><th>Sell (₹)</th>';
+  }
+
+  function makeRow(dateVal){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="date" data-f="date" value="${dateVal || todayStr()}"></td>
+      <td><select data-f="category">${CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('')}</select></td>
+      <td><input type="text" data-f="description" placeholder="e.g. Brake pads"></td>
+      <td><input type="text" data-f="vehicleNo" placeholder="TN45AB1234"></td>
+      <td><input type="text" data-f="notes" placeholder="Optional"></td>
+      <td><input type="number" data-f="quantity" min="0" placeholder="—"></td>
+      ${columns.map(c => `<td><input type="text" data-c="${c.id}"></td>`).join('')}
+      <td><input type="number" data-f="buyAmount" min="0" placeholder="0"></td>
+      <td><input type="number" data-f="sellAmount" min="0" placeholder="0"></td>`;
+    return tr;
+  }
+
+  let editingId = null;
+
+  function updateEditUI(){
+    document.getElementById('addTitle').textContent = editingId ? 'Edit entry' : 'Add entry';
+    document.getElementById('cancelEditBtn').hidden = !editingId;
+    document.getElementById('saveEntryBtn').textContent = editingId ? 'Update Entry' : 'Save Entry';
+  }
+
+  function resetGrid(dateVal){
+    const body = document.getElementById('gridBody');
+    body.innerHTML = '';
+    body.appendChild(makeRow(dateVal));
+  }
+
+  async function saveGridEntries(){
+    const rows = [...document.querySelectorAll('#gridBody tr')];
+    const toSave = [];
+    for(let i = 0; i < rows.length; i++){
+      const tr = rows[i];
+      const val = f => tr.querySelector(`[data-f="${f}"]`).value;
+      const description = val('description').trim();
+      const buy = val('buyAmount');
+      const sell = val('sellAmount');
+      const custom = {};
+      tr.querySelectorAll('[data-c]').forEach(inp => { if(inp.value.trim()) custom[inp.dataset.c] = inp.value.trim(); });
+      const touched = description || buy !== '' || sell !== '' || val('notes').trim() || val('vehicleNo').trim() || val('quantity') !== '' || Object.keys(custom).length;
+      if(!touched) continue;  // skip blank rows
+      if(!description){ alert('Row ' + (i+1) + ': enter a Description.'); return; }
+      if(buy === '' && sell === ''){
+        alert('Row ' + (i+1) + ': enter a Buy Amount or a Sell Amount (or both, to log profit on one entry).');
+        return;
+      }
+      toSave.push({
+        id: Date.now().toString(36) + Math.random().toString(36).slice(2,7) + i,
+        date: val('date'),
+        category: val('category'),
+        description,
+        vehicleNo: val('vehicleNo').trim(),
+        quantity: val('quantity'),
+        buyAmount: buy === '' ? 0 : Number(buy),
+        sellAmount: sell === '' ? 0 : Number(sell),
+        notes: val('notes').trim(),
+        custom,
+      });
+    }
+    if(toSave.length === 0){
+      alert('Nothing to save — fill in at least one row.');
+      return;
+    }
+    if(editingId){
+      const updated = { ...toSave[0], id: editingId };
+      entries = entries.map(e => e.id === editingId ? updated : e);
+      editingId = null;
+    } else {
+      entries.push(...toSave);
+    }
+    await saveEntries();
+    render();
+    updateEditUI();
+    resetGrid(toSave[toSave.length - 1].date);
+  }
+
+  document.getElementById('saveEntryBtn').addEventListener('click', saveGridEntries);
+
+  function startEdit(id){
+    const e = entries.find(x => x.id === id);
+    if(!e) return;
+    editingId = id;
+    resetGrid(e.date);
+    const tr = document.querySelector('#gridBody tr');
+    const set = (f, v) => { tr.querySelector(`[data-f="${f}"]`).value = v == null ? '' : v; };
+    set('date', e.date); set('category', e.category); set('description', e.description);
+    set('vehicleNo', e.vehicleNo); set('notes', e.notes); set('quantity', e.quantity);
+    set('buyAmount', Number(e.buyAmount) > 0 ? e.buyAmount : '');
+    set('sellAmount', Number(e.sellAmount) > 0 ? e.sellAmount : '');
+    tr.querySelectorAll('[data-c]').forEach(inp => { inp.value = (e.custom && e.custom[inp.dataset.c]) || ''; });
+    updateEditUI();
+    showPage('add');
+  }
+
+  document.getElementById('cancelEditBtn').addEventListener('click', () => {
+    editingId = null;
+    updateEditUI();
+    resetGrid();
+  });
+
+  document.getElementById('txEditBtn').addEventListener('click', () => {
+    const ids = [...document.querySelectorAll('#tableBody .row-sel:checked')].map(c => c.dataset.id);
+    if(ids.length !== 1){
+      alert('Tick exactly one row to edit.');
+      return;
+    }
+    startEdit(ids[0]);
+  });
+
+  async function saveTransactionsToFile(){
+    if(entries.length === 0){
+      alert('No transactions to save yet.');
+      return;
+    }
+    const headers = ['Date','Category','Description','Vehicle No','Quantity', ...columns.map(c => c.name), 'Buy Amount','Sell Amount','Profit','Notes'];
+    const rows = entries.map(e => {
+      const buy = Number(e.buyAmount || 0);
+      const sell = Number(e.sellAmount || 0);
+      const profit = (buy > 0 && sell > 0) ? (sell - buy) : '';
+      return [e.date, e.category, e.description, e.vehicleNo, e.quantity, ...columns.map(c => (e.custom && e.custom[c.id]) || ''), buy || '', sell || '', profit, e.notes];
+    });
+    const csv = [headers, ...rows]
+      .map(row => row.map(val => `"${String(val ?? '').replace(/"/g,'""')}"`).join(','))
+      .join('\n');
+
+    await writeCsv(csv, 'rb-motors-transactions.csv');
+  }
+
+  const toCsv = (headers, rows) => [headers, ...rows]
+    .map(row => row.map(val => `"${String(val ?? '').replace(/"/g,'""')}"`).join(','))
+    .join('\n');
+
+  async function writeCsv(csv, name){
+    // Prefer the File System Access API so the browser remembers the folder you pick.
+    if(window.showSaveFilePicker){
+      try{
+        const handle = await window.showSaveFilePicker({
+          suggestedName: name,
+          types: [{ description: 'CSV file', accept: { 'text/csv': ['.csv'] } }]
+        });
+        const writable = await handle.createWritable();
+        await writable.write(csv);
+        await writable.close();
+        return;
+      }catch(err){
+        if(err && err.name === 'AbortError') return;
+      }
+    }
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Vehicle wise ----------
+  let openVeh = null;
+  const vehKey = v => (v || '').replace(/\s+/g, '').toUpperCase();
+
+  function groupVehicles(){
+    const map = new Map();
+    entries.forEach(e => {
+      const key = vehKey(e.vehicleNo);
+      if(!map.has(key)) map.set(key, { key, name: e.vehicleNo ? e.vehicleNo.trim().toUpperCase() : '(No vehicle)', list: [], buy: 0, sell: 0 });
+      const g = map.get(key);
+      g.list.push(e);
+      g.buy += Number(e.buyAmount || 0);
+      g.sell += Number(e.sellAmount || 0);
+    });
+    return [...map.values()].sort((x, y) => x.name.localeCompare(y.name));
+  }
+
+  const profitCls = n => n >= 0 ? 'sell' : 'buy';
+
+  function renderVehicles(){
+    const groups = groupVehicles();
+    const body = document.getElementById('vehBody');
+    if(groups.length === 0){
+      body.innerHTML = '<tr class="empty-row"><td colspan="6">No entries yet.</td></tr>';
+      document.getElementById('vehFoot').innerHTML = '';
+      openVeh = null;
+    } else {
+      body.innerHTML = groups.map(g => `<tr>
+        <td>${escapeHtml(g.name)}</td>
+        <td>${g.list.length}</td>
+        <td class="amt buy">${fmt(g.buy)}</td>
+        <td class="amt sell">${fmt(g.sell)}</td>
+        <td class="amt ${profitCls(g.sell - g.buy)}">${fmt(g.sell - g.buy)}</td>
+        <td><button class="edit-btn" data-key="${escapeHtml(g.key)}">Open</button></td>
+      </tr>`).join('');
+      body.querySelectorAll('.edit-btn').forEach(btn => btn.addEventListener('click', () => { openVeh = btn.dataset.key; renderVehicleDetail(); }));
+      const tb = groups.reduce((x, g) => x + g.buy, 0), ts = groups.reduce((x, g) => x + g.sell, 0);
+      document.getElementById('vehFoot').innerHTML = `<tr class="totals-row">
+        <td colspan="2" style="text-align:right; font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:0.6px; color:var(--text-dim);">Totals</td>
+        <td class="amt buy" style="font-weight:700;">${fmt(tb)}</td>
+        <td class="amt sell" style="font-weight:700;">${fmt(ts)}</td>
+        <td class="amt ${profitCls(ts - tb)}" style="font-weight:700;">${fmt(ts - tb)}</td><td></td></tr>`;
+    }
+    renderVehicleDetail();
+  }
+
+  function renderVehicleDetail(){
+    const box = document.getElementById('vehDetail');
+    const g = openVeh !== null ? groupVehicles().find(x => x.key === openVeh) : null;
+    if(!g){ box.hidden = true; return; }
+    box.hidden = false;
+    document.getElementById('vehDetailTitle').textContent = 'Vehicle: ' + g.name;
+    document.getElementById('vehDetailBody').innerHTML = [...g.list]
+      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+      .map(e => {
+        const buy = Number(e.buyAmount || 0), sell = Number(e.sellAmount || 0);
+        const both = buy > 0 && sell > 0;
+        return `<tr>
+          <td>${e.date || '—'}</td><td>${e.category}</td><td>${escapeHtml(e.description)}</td>
+          <td>${e.quantity !== '' && e.quantity != null ? e.quantity : '—'}</td>
+          <td class="amt buy">${buy > 0 ? fmt(buy) : '—'}</td>
+          <td class="amt sell">${sell > 0 ? fmt(sell) : '—'}</td>
+          <td class="amt ${profitCls(sell - buy)}">${both ? fmt(sell - buy) : '—'}</td>
+        </tr>`;
+      }).join('');
+  }
+
+  document.getElementById('vehSaveBtn').addEventListener('click', async () => {
+    const groups = groupVehicles();
+    if(groups.length === 0){ alert('No transactions to save yet.'); return; }
+    const rows = groups.map(g => [g.name, g.list.length, g.buy, g.sell, g.sell - g.buy]);
+    await writeCsv(toCsv(['Vehicle No','Entries','Buy Amount','Sell Amount','Profit'], rows), 'rb-motors-vehicle-wise.csv');
+  });
+
+  document.getElementById('vehDetailSave').addEventListener('click', async () => {
+    const g = groupVehicles().find(x => x.key === openVeh);
+    if(!g) return;
+    const rows = g.list.map(e => {
+      const buy = Number(e.buyAmount || 0), sell = Number(e.sellAmount || 0);
+      return [e.date, e.category, e.description, e.quantity, buy || '', sell || '', (buy > 0 && sell > 0) ? sell - buy : '', e.notes];
+    });
+    const safe = g.name.replace(/[^A-Z0-9]+/g, '-').replace(/^-|-$/g, '') || 'no-vehicle';
+    await writeCsv(toCsv(['Date','Category','Description','Quantity','Buy Amount','Sell Amount','Profit','Notes'], rows), 'rb-motors-' + safe + '.csv');
+  });
+
+  document.getElementById('vehDetailClose').addEventListener('click', () => { openVeh = null; renderVehicleDetail(); });
+
+  document.getElementById('saveBtn').addEventListener('click', saveTransactionsToFile);
+
+  function showPage(page){
+    document.getElementById('pageAdd').hidden = page !== 'add';
+    document.getElementById('pageTx').hidden = page !== 'tx';
+    document.getElementById('pageVeh').hidden = page !== 'veh';
+    document.getElementById('tabAdd').classList.toggle('active', page === 'add');
+    document.getElementById('tabTx').classList.toggle('active', page === 'tx');
+    document.getElementById('tabVeh').classList.toggle('active', page === 'veh');
+  }
+  document.getElementById('tabAdd').addEventListener('click', () => showPage('add'));
+  document.getElementById('tabTx').addEventListener('click', () => showPage('tx'));
+  document.getElementById('tabVeh').addEventListener('click', () => showPage('veh'));
+  document.getElementById('txAddBtn').addEventListener('click', () => showPage('add'));
+
+  document.getElementById('txDeleteBtn').addEventListener('click', async () => {
+    const ids = [...document.querySelectorAll('#tableBody .row-sel:checked')].map(c => c.dataset.id);
+    if(ids.length === 0){
+      alert('Tick the rows you want to delete first.');
+      return;
+    }
+    if(!confirm('Delete ' + ids.length + ' selected entr' + (ids.length === 1 ? 'y' : 'ies') + '? This cannot be undone.')) return;
+    entries = entries.filter(e => !ids.includes(e.id));
+    await saveEntries();
+    render();
+  });
+
+  loadEntries();
+</script>
+</body>
+</html>
